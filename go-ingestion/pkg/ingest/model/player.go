@@ -1,4 +1,4 @@
-package ingest
+package model
 
 type PlayerCard struct {
 	Small string `json:"small"`
@@ -6,7 +6,7 @@ type PlayerCard struct {
 	Wide  string `json:"wide"`
 	Id    string `json:"id"`
 }
-type PlayerData struct {
+type PlayerStats struct {
 	Puuid        string     `json:"puuid"`
 	Region       string     `json:"region"`
 	AccountLevel int        `json:"account_level"`
@@ -17,6 +17,6 @@ type PlayerData struct {
 }
 
 type Player struct {
-	Status int        `json:"status"`
-	Data   PlayerData `json:"data"`
+	Status int         `json:"status"`
+	Data   PlayerStats `json:"data"`
 }

@@ -16,11 +16,13 @@ func PrettyStruct(data interface{}) (string, error) {
 	return string(val), nil
 }
 
-func main() {
-	playerName := "Aledania"
-	playerTag := "3110"
+const playerURL = "https://api.henrikdev.xyz/valorant/v1/account/%s/%s"
+const matchURL = "https://api.henrikdev.xyz/valorant/v3/matches/%s/%s/%s"
 
-	req, err := ingest.GetPlayerData(playerName, playerTag)
+func main() {
+	dataLino := ingest.NewPlayerData("Aledania", "3110")
+
+	req, err := dataLino.GetMatchData()
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
