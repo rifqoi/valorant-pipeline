@@ -16,9 +16,6 @@ func PrettyStruct(data interface{}) (string, error) {
 	return string(val), nil
 }
 
-const playerURL = "https://api.henrikdev.xyz/valorant/v1/account/%s/%s"
-const matchURL = "https://api.henrikdev.xyz/valorant/v3/matches/%s/%s/%s"
-
 func main() {
 	dataLino := ingest.NewPlayerData("Aledania", "3110")
 

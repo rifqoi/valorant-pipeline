@@ -10,9 +10,11 @@ import (
 )
 
 type PlayerData struct {
-	Name   string
-	Tag    string
-	Region string
+	Name         string
+	Tag          string
+	Region       string
+	Puuid        string
+	AccountLevel int
 }
 
 func NewPlayerData(name string, tag string) *PlayerData {
@@ -21,19 +23,23 @@ func NewPlayerData(name string, tag string) *PlayerData {
 	d.Name = name
 	d.Tag = tag
 
-	player, err := d.GetPlayerData()
+	player, err := d.getPlayerData()
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	d.Region = player.Data.Region
+	d.Puuid = player.Data.Puuid
+	d.AccountLevel = player.Data.AccountLevel
+
 	return d
 }
 
-func (d *PlayerData) GetPlayerData() (*model.Player, error) {
+func (d *PlayerData) getPlayerData() (*model.Player, error) {
 	player := &model.Player{}
 	client := &http.Client{}
 	url := fmt.Sprintf("https://api.henrikdev.xyz/valorant/v1/account/%s/%s", d.Name, d.Tag)
-	// fmt.Println("GET: ", url)
 
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
