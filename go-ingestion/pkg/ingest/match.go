@@ -1,4 +1,4 @@
-package model
+package ingest
 
 type Match struct {
 	Status int `json:"status"`

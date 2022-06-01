@@ -1,4 +1,4 @@
-package model
+package ingest
 
 type PlayerCard struct {
 	Small string `json:"small"`
@@ -16,7 +16,7 @@ type PlayerStats struct {
 	LastUpdate   string     `json:"last_update"`
 }
 
-type Player struct {
+type PlayerData struct {
 	Status int         `json:"status"`
 	Data   PlayerStats `json:"data"`
 }
