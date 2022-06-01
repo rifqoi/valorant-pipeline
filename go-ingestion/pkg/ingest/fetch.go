@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path"
 )
 
 type Player struct {
@@ -17,15 +19,43 @@ type Player struct {
 func NewPlayerData(name string, tag string) *Player {
 	player := &Player{}
 
-	playerData, err := getPlayerData(name, tag)
-	if err != nil {
-		log.Fatal(err)
+	playerData := &PlayerData{}
+	if err := isPlayerDataExists(name, tag); err != nil {
+		log.Println("PlayerData not found. Fetching data from API.")
+		fetchData, err := getPlayerData(name, tag)
+		if err != nil {
+			log.Fatal(err)
+		}
+		playerData = fetchData
+		player.PlayerData = playerData
+	} else {
+		log.Println("PlayerData found!")
+		dir := fmt.Sprintf("Player/%s#%s", name, tag)
+		jsonBytes, err := os.ReadFile(path.Join(dir, name+".json"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = json.Unmarshal(jsonBytes, playerData)
+		if err != nil {
+			log.Fatal(err)
+		}
+		player.PlayerData = playerData
 	}
 	player.Name = name
 	player.Tag = tag
 	player.Region = playerData.Data.Region
-	player.PlayerData = playerData
 	return player
+}
+
+func isPlayerDataExists(name string, tag string) error {
+	dir := path.Join("Player", name+"#"+tag)
+	path := path.Join(dir, name+".json")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Println(path + " is not exist")
+		return err
+	}
+	log.Println(path + " is exist")
+	return nil
 }
 
 func getPlayerData(name string, tag string) (*PlayerData, error) {
@@ -58,7 +88,7 @@ func (p *Player) GetMatchData() (*Match, error) {
 	match := &Match{}
 	client := &http.Client{}
 	url := fmt.Sprintf("https://api.henrikdev.xyz/valorant/v3/matches/%s/%s/%s", p.Region, p.Name, p.Tag)
-	fmt.Println("GET: ", url)
+	log.Println("GET: ", url)
 
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
