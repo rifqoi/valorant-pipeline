@@ -30,7 +30,7 @@ func createLogFile(dir string) (string, error) {
 func readLogFile(filepath string) (string, error) {
 	f, err := os.Open(path.Join(filepath, "history.log"))
 	if err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
 	defer f.Close()
 
@@ -42,7 +42,12 @@ func readLogFile(filepath string) (string, error) {
 	if err := scanner.Err(); err != nil {
 		return "", err
 	}
+
+	if len(linesSlices) == 0 {
+		return "", nil
+	}
 	lastLine := linesSlices[len(linesSlices)-1]
+
 	return lastLine, nil
 }
 
@@ -124,10 +129,8 @@ func (p *Player) WriteMatchJSON(match *Match) error {
 	log.Println("Reading log file....")
 	lastHistory, err := readLogFile(dir)
 	if err != nil {
-		if lastHistory == "" {
-			os.Remove(dir)
-			return fmt.Errorf("Empty history")
-		}
+		os.Remove(logPath)
+		return fmt.Errorf("Empty history")
 	}
 
 	if lastHistory == lastMatchID {

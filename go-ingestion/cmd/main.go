@@ -49,15 +49,18 @@ func main() {
 		log.Println(err)
 	}
 
-	// dataNanda := ingest.NewPlayerData("iNeChan", "uwu")
+	dataNanda := ingest.NewPlayerData("iNeChan", "uwu")
 
-	// match, err = dataNanda.GetMatchData()
-	// if err != nil {
-	// 	fmt.Println("Error: ", err)
-	// }
+	if err := dataNanda.WritePlayerJSON(); err != nil {
+		log.Println(err)
+	}
+	match, err = dataNanda.GetMatchData()
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 
-	// if err := dataNanda.WriteMatchJSON(match); err != nil {
-	// 	log.Println(err)
-	// }
+	if err := dataNanda.WriteMatchJSON(match); err != nil {
+		log.Println(err)
+	}
 
 }
