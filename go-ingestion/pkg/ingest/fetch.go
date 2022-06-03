@@ -19,6 +19,9 @@ type Player struct {
 func NewPlayerData(name string, tag string) *Player {
 	player := &Player{}
 
+	player.Name = name
+	player.Tag = tag
+
 	playerData := &PlayerData{}
 	if err := isPlayerDataExists(name, tag); err != nil {
 		log.Println("PlayerData not found. Fetching data from API.")
@@ -28,6 +31,10 @@ func NewPlayerData(name string, tag string) *Player {
 		}
 		playerData = fetchData
 		player.PlayerData = playerData
+		if err := player.WritePlayerLocalJSON(); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Print("asd")
 	} else {
 		log.Println("PlayerData found!")
 		dir := fmt.Sprintf("Player/%s#%s", name, tag)
@@ -41,8 +48,6 @@ func NewPlayerData(name string, tag string) *Player {
 		}
 		player.PlayerData = playerData
 	}
-	player.Name = name
-	player.Tag = tag
 	player.Region = playerData.Data.Region
 	return player
 }

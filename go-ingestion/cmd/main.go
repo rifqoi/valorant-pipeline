@@ -41,25 +41,18 @@ func main() {
 		fmt.Println("Error: ", err)
 	}
 
-	if err := dataLino.WritePlayerJSON(); err != nil {
-		log.Println(err)
-	}
-
-	if err := dataLino.WriteMatchJSON(match); err != nil {
+	if err := dataLino.WriteMatchLocalJSON(match); err != nil {
 		log.Println(err)
 	}
 
 	dataNanda := ingest.NewPlayerData("iNeChan", "uwu")
 
-	if err := dataNanda.WritePlayerJSON(); err != nil {
-		log.Println(err)
-	}
 	match, err = dataNanda.GetMatchData()
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
 
-	if err := dataNanda.WriteMatchJSON(match); err != nil {
+	if err := dataNanda.WriteMatchLocalJSON(match); err != nil {
 		log.Println(err)
 	}
 
@@ -70,7 +63,7 @@ func main() {
 		fmt.Println("Error: ", err)
 	}
 
-	if err := dataIU.WriteMatchJSON(match); err != nil {
+	if err := dataIU.WriteMatchLocalJSON(match); err != nil {
 		log.Println(err)
 	}
 }

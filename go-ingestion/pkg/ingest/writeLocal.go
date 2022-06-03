@@ -137,7 +137,7 @@ func (p *Player) WriteMatchLocalJSON(match *Match) error {
 		return fmt.Errorf("Udah ada match sebelumnya: %s", lastMatchID)
 	}
 
-	log.Printf("Appending %s to %s", lastHistory, fullPath)
+	log.Printf("Appending %s to %s", lastMatchID, fullPath)
 	if err := appendHistoryToLocalLogFile(logPath, lastMatchID); err != nil {
 		log.Fatal(err)
 	}
