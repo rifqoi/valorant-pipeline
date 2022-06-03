@@ -63,4 +63,14 @@ func main() {
 		log.Println(err)
 	}
 
+	dataIU := ingest.NewPlayerData("I U", "8400")
+
+	match, err = dataIU.GetMatchData()
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
+
+	if err := dataIU.WriteMatchJSON(match); err != nil {
+		log.Println(err)
+	}
 }
