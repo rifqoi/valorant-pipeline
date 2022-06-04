@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"cloud.google.com/go/storage"
+	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest/model"
 	"golang.org/x/net/context"
 )
 
@@ -43,6 +44,6 @@ func (p *Player) WritePlayerCloudJSON() error {
 	return nil
 }
 
-func (p *Player) WriteMatchCloudJSON(match *Match) error {
+func (p *Player) WriteMatchCloudJSON(match *model.Match) error {
 	return nil
 }

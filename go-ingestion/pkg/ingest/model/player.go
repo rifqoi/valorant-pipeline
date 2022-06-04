@@ -1,4 +1,4 @@
-package ingest
+package model
 
 type PlayerCard struct {
 	Small string `json:"small"`

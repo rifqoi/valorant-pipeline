@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"path"
+
+	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest/model"
 )
 
 func localLogFileExists(dir string) error {
@@ -93,7 +95,7 @@ func (p *Player) WritePlayerLocalJSON() error {
 	return nil
 }
 
-func (p *Player) WriteMatchLocalJSON(match *Match) error {
+func (p *Player) WriteMatchLocalJSON(match *model.Match) error {
 	// Last Match ID
 	lastMatchID := match.Data[0].Metadata.Matchid
 	// Directory Player/<PlayerName>#>Tag>/

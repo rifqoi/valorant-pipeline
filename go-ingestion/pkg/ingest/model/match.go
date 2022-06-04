@@ -1,23 +1,25 @@
-package ingest
+package model
+
+type Metadata struct {
+	Map              string `json:"map"`
+	GameVersion      string `json:"game_version"`
+	GameLength       int    `json:"game_length"`
+	GameStart        int    `json:"game_start"`
+	GameStartPatched string `json:"game_start_patched"`
+	RoundsPlayed     int    `json:"rounds_played"`
+	Mode             string `json:"mode"`
+	SeasonID         string `json:"season_id"`
+	Platform         string `json:"platform"`
+	Matchid          string `json:"matchid"`
+	Region           string `json:"region"`
+	Cluster          string `json:"cluster"`
+}
 
 type Match struct {
 	Status int `json:"status"`
 	Data   []struct {
-		Metadata struct {
-			Map              string `json:"map"`
-			GameVersion      string `json:"game_version"`
-			GameLength       int    `json:"game_length"`
-			GameStart        int    `json:"game_start"`
-			GameStartPatched string `json:"game_start_patched"`
-			RoundsPlayed     int    `json:"rounds_played"`
-			Mode             string `json:"mode"`
-			SeasonID         string `json:"season_id"`
-			Platform         string `json:"platform"`
-			Matchid          string `json:"matchid"`
-			Region           string `json:"region"`
-			Cluster          string `json:"cluster"`
-		} `json:"metadata"`
-		Players struct {
+		Metadata *Metadata
+		Players  struct {
 			AllPlayers []struct {
 				Puuid              string `json:"puuid"`
 				Name               string `json:"name"`
