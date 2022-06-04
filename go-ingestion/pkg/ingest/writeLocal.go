@@ -142,7 +142,7 @@ func (p *Player) WriteMatchLocalJSON(match *Match) error {
 		log.Fatal(err)
 	}
 
-	log.Printf("Creating %s JSON file", lastHistory)
+	log.Printf("Creating %s.json file", lastMatchID)
 	if err = writeLocalJson(fullPath, match); err != nil {
 		log.Fatal(err)
 	}
