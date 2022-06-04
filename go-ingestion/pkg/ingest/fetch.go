@@ -3,46 +3,56 @@ package ingest
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
+	"time"
+
+	"github.com/avast/retry-go"
+	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest/model"
 )
 
 type Player struct {
 	Name       string
 	Tag        string
 	Region     string
-	PlayerData *PlayerData
+	PlayerData *model.PlayerData
 }
 
 func NewPlayerData(name string, tag string) *Player {
 	player := &Player{}
 
-	playerData := &PlayerData{}
+	player.Name = name
+	player.Tag = tag
+
+	playerData := &model.PlayerData{}
 	if err := isPlayerDataExists(name, tag); err != nil {
 		log.Println("PlayerData not found. Fetching data from API.")
 		fetchData, err := getPlayerData(name, tag)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		playerData = fetchData
 		player.PlayerData = playerData
+		if err := player.WritePlayerLocalJSON(); err != nil {
+			log.Println(err)
+		}
+		fmt.Print("asd")
 	} else {
 		log.Println("PlayerData found!")
 		dir := fmt.Sprintf("Player/%s#%s", name, tag)
 		jsonBytes, err := os.ReadFile(path.Join(dir, name+".json"))
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		err = json.Unmarshal(jsonBytes, playerData)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		player.PlayerData = playerData
 	}
-	player.Name = name
-	player.Tag = tag
 	player.Region = playerData.Data.Region
 	return player
 }
@@ -58,53 +68,69 @@ func isPlayerDataExists(name string, tag string) error {
 	return nil
 }
 
-func getPlayerData(name string, tag string) (*PlayerData, error) {
-	player := &PlayerData{}
-	client := &http.Client{}
+func getJson(url string) []byte {
+	var body []byte
+	err := retry.Do(
+		func() error {
+			resp, err := http.Get(url)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+
+			if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
+				log.Printf("Response Status: %v", resp.StatusCode)
+				return err
+			}
+
+			defer resp.Body.Close()
+			body, err = ioutil.ReadAll(resp.Body)
+
+			return nil
+		},
+		retry.Delay(3*time.Minute),
+	)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	return body
+}
+
+func getPlayerData(name string, tag string) (*model.PlayerData, error) {
+	player := &model.PlayerData{}
 	url := fmt.Sprintf("https://api.henrikdev.xyz/valorant/v1/account/%s/%s", name, tag)
 
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	jsonBytes := getJson(url)
 
-	response, err := client.Do(request)
+	err := json.Unmarshal(jsonBytes, &player)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer response.Body.Close()
-
-	err = json.NewDecoder(response.Body).Decode(&player)
-	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return nil, err
 	}
 
 	return player, nil
 }
 
-func (p *Player) GetMatchData() (*Match, error) {
-	match := &Match{}
-	client := &http.Client{}
+func (p *Player) GetMatchData() (*model.Match, error) {
+	match := &model.Match{}
 	url := fmt.Sprintf("https://api.henrikdev.xyz/valorant/v3/matches/%s/%s/%s", p.Region, p.Name, p.Tag)
 	log.Println("GET: ", url)
 
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	err := retry.Do(
+		func() error {
+			jsonBytes := getJson(url)
+			err := json.Unmarshal(jsonBytes, &match)
+			isAvailable := match.Data[4].Metadata
+			if isAvailable == nil {
+				return err
+			}
+			return nil
+		},
+	)
 
-	response, err := client.Do(request)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer response.Body.Close()
-
-	err = json.NewDecoder(response.Body).Decode(&match)
-	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 

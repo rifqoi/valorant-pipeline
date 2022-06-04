@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
+	"sort"
 
 	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest"
 )
@@ -16,51 +16,31 @@ func PrettyStruct(data interface{}) (string, error) {
 	}
 	return string(val), nil
 }
-func readFile(fname string) {
-	file, err := os.Open(fname)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	buf := make([]byte, 62)
-	stat, err := os.Stat(fname)
-	start := stat.Size() - 62
-	_, err = file.ReadAt(buf, start)
-	if err == nil {
-		fmt.Printf("%s\n", buf)
-	}
-
-}
 
 func main() {
-	dataLino := ingest.NewPlayerData("Aledania", "3110")
+	players := make(map[string]string)
 
-	match, err := dataLino.GetMatchData()
-	if err != nil {
-		fmt.Println("Error: ", err)
+	players["Aledania"] = "3110"
+	players["iNeChan"] = "uwu"
+	players["I U"] = "8400"
+
+	// To store the keys in slice in sorted order
+	var keys []string
+	for k := range players {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 
-	if err := dataLino.WritePlayerJSON(); err != nil {
-		log.Println(err)
+	for _, key := range keys {
+		dataPlayer := ingest.NewPlayerData(key, players[key])
+		match, err := dataPlayer.GetMatchData()
+		if err != nil {
+			log.Println(err)
+		}
+		if err := dataPlayer.WriteMatchLocalJSON(match); err != nil {
+			log.Println(err)
+		}
+		fmt.Println("")
 	}
-
-	if err := dataLino.WriteMatchJSON(match); err != nil {
-		log.Println(err)
-	}
-
-	dataNanda := ingest.NewPlayerData("iNeChan", "uwu")
-
-	if err := dataNanda.WritePlayerJSON(); err != nil {
-		log.Println(err)
-	}
-	match, err = dataNanda.GetMatchData()
-	if err != nil {
-		fmt.Println("Error: ", err)
-	}
-
-	if err := dataNanda.WriteMatchJSON(match); err != nil {
-		log.Println(err)
-	}
-
+	fmt.Println("Nice")
 }
