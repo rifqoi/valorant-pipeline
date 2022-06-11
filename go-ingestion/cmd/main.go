@@ -6,6 +6,8 @@ import (
 	"log"
 	"sort"
 
+	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/datalake"
+	ls "github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/datalake/local"
 	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest"
 )
 
@@ -33,14 +35,34 @@ func main() {
 
 	for _, key := range keys {
 		dataPlayer := ingest.NewPlayerData(key, players[key])
+
+		storage := chooseStorage("local", dataPlayer)
 		match, err := dataPlayer.GetMatchData()
 		if err != nil {
 			log.Println(err)
 		}
-		if err := dataPlayer.WriteMatchLocalJSON(match); err != nil {
+		if err := storage.WriteMatchJSON(match); err != nil {
 			log.Println(err)
 		}
 		fmt.Println("")
 	}
 	fmt.Println("Nice")
+	// dataPlayer := ingest.NewPlayerData("Aledania", "3110")
+
+	// gcs := ingest.NewCloudStorage(dataPlayer)
+	// gcs.CreateCloudLogFile("Player/Aledania#3110")
+
+}
+
+func chooseStorage(storageType string, player *ingest.Player) datalake.StorageHelper {
+	switch storageType {
+	case "local":
+		storage := ls.NewLocalStorage(player)
+
+		return storage
+	case "gcs":
+		return nil
+	}
+
+	return nil
 }
