@@ -1,4 +1,4 @@
-package ingest
+package local
 
 import (
 	"bufio"
@@ -9,27 +9,40 @@ import (
 	"os"
 	"path"
 
+	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest"
 	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest/model"
 )
 
-func localLogFileExists(dir string) error {
+type localStorage struct {
+	player *ingest.Player
+}
+
+func NewLocalStorage(player *ingest.Player) *localStorage {
+	return &localStorage{
+		player: player,
+	}
+}
+
+func logFileExists(dir string) error {
 	logPath := path.Join(dir, "history.log")
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		return err
 	}
 	return nil
+
 }
 
-func createLocalLogFile(dir string) (string, error) {
+func createLogFile(dir string) (string, error) {
 	logPath := path.Join(dir, "history.log")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}
 	os.Create(logPath)
 	return logPath, nil
+
 }
 
-func readLocalLogFile(filepath string) (string, error) {
+func (ls *localStorage) readLogFile(filepath string) (string, error) {
 	f, err := os.Open(path.Join(filepath, "history.log"))
 	if err != nil {
 		return "", err
@@ -51,9 +64,10 @@ func readLocalLogFile(filepath string) (string, error) {
 	lastLine := linesSlices[len(linesSlices)-1]
 
 	return lastLine, nil
+
 }
 
-func writeLocalJson(filepath string, jsonInterface interface{}) error {
+func writeJSON(filepath string, jsonInterface interface{}) error {
 	jsonFile, err := json.MarshalIndent(jsonInterface, "", "  ")
 	if err != nil {
 		return err
@@ -63,9 +77,10 @@ func writeLocalJson(filepath string, jsonInterface interface{}) error {
 		return err
 	}
 	return nil
+
 }
 
-func appendHistoryToLocalLogFile(filepath string, logInformation string) error {
+func appendHistory(filepath string, logInformation string) error {
 	f, err := os.OpenFile(filepath, os.O_APPEND|os.O_WRONLY, 0755)
 	if err != nil {
 		return err
@@ -78,28 +93,30 @@ func appendHistoryToLocalLogFile(filepath string, logInformation string) error {
 	}
 
 	return nil
+
 }
 
-func (p *Player) WritePlayerLocalJSON() error {
-	dir := fmt.Sprintf("Player/%s#%s", p.Name, p.Tag)
-	filename := fmt.Sprintf("%s.json", p.Name)
+func (ls *localStorage) WritePlayerJSON() error {
+	dir := fmt.Sprintf("Player/%s#%s", ls.player.Name, ls.player.Tag)
+	filename := fmt.Sprintf("%s.json", ls.player.Name)
 	fullPath := path.Join(dir, filename)
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
 	log.Printf("Creating %s", fullPath)
-	if err := writeLocalJson(fullPath, p.PlayerData); err != nil {
+	if err := writeJSON(fullPath, ls.player.PlayerData); err != nil {
 		return err
 	}
 	return nil
+
 }
 
-func (p *Player) WriteMatchLocalJSON(match *model.Match) error {
+func (ls *localStorage) WriteMatchJSON(match *model.Match) error {
 	// Last Match ID
 	lastMatchID := match.Data[0].Metadata.Matchid
 	// Directory Player/<PlayerName>#>Tag>/
-	dir := fmt.Sprintf("Player/%s#%s/matches", p.Name, p.Tag)
+	dir := fmt.Sprintf("Player/%s#%s/matches", ls.player.Name, ls.player.Tag)
 	// File Player/<PlayerName>#>Tag>/<match-id>.json
 	filename := fmt.Sprintf("%s.json", lastMatchID)
 	fullPath := path.Join(dir, filename)
@@ -107,20 +124,20 @@ func (p *Player) WriteMatchLocalJSON(match *model.Match) error {
 
 	// Check whether the last fetched data is the same or not
 	log.Println("Checking log history")
-	if err := localLogFileExists(dir); err != nil {
+	if err := logFileExists(dir); err != nil {
 		log.Println("Log file not found. Creating a new log file....")
-		logPath, err := createLocalLogFile(dir)
+		logPath, err := createLogFile(dir)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		log.Println("Appending match id to log file...")
-		if err := appendHistoryToLocalLogFile(logPath, lastMatchID); err != nil {
+		if err := appendHistory(logPath, lastMatchID); err != nil {
 			log.Fatal(err)
 		}
 
 		log.Println("Writing json....")
-		if err = writeLocalJson(fullPath, match); err != nil {
+		if err = writeJSON(fullPath, match); err != nil {
 			log.Fatal(err)
 		}
 
@@ -129,23 +146,24 @@ func (p *Player) WriteMatchLocalJSON(match *model.Match) error {
 	}
 
 	log.Println("Reading log file....")
-	lastHistory, err := readLocalLogFile(dir)
+	lastHistory, err := ls.readLogFile(dir)
 	if err != nil {
 		os.Remove(logPath)
 		return fmt.Errorf("Empty history")
 	}
 
 	if lastHistory == lastMatchID {
-		return fmt.Errorf("Udah ada match sebelumnya: %s", lastMatchID)
+		return fmt.Errorf("There was an existing match: %s", lastMatchID)
 	}
 
+	log.Println("New match found!")
 	log.Printf("Appending %s to %s", lastMatchID, fullPath)
-	if err := appendHistoryToLocalLogFile(logPath, lastMatchID); err != nil {
+	if err := appendHistory(logPath, lastMatchID); err != nil {
 		log.Fatal(err)
 	}
 
 	log.Printf("Creating %s.json file", lastMatchID)
-	if err = writeLocalJson(fullPath, match); err != nil {
+	if err = writeJSON(fullPath, match); err != nil {
 		log.Fatal(err)
 	}
 
