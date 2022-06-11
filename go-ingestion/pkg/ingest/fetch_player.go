@@ -27,33 +27,38 @@ func NewPlayerData(name string, tag string) *Player {
 	player.Name = name
 	player.Tag = tag
 
-	playerData := &model.PlayerData{}
-	if err := isPlayerDataExists(name, tag); err != nil {
-		log.Println("PlayerData not found. Fetching data from API.")
-		fetchData, err := getPlayerData(name, tag)
-		if err != nil {
-			log.Println(err)
-		}
-		playerData = fetchData
-		player.PlayerData = playerData
-		if err := player.WritePlayerLocalJSON(); err != nil {
-			log.Println(err)
-		}
-		fmt.Print("asd")
-	} else {
-		log.Println("PlayerData found!")
-		dir := fmt.Sprintf("Player/%s#%s", name, tag)
-		jsonBytes, err := os.ReadFile(path.Join(dir, name+".json"))
-		if err != nil {
-			log.Println(err)
-		}
-		err = json.Unmarshal(jsonBytes, playerData)
-		if err != nil {
-			log.Println(err)
-		}
-		player.PlayerData = playerData
+	log.Printf("Fetching %s#%s player data from API. ", name, tag)
+	fetchData, err := getPlayerData(name, tag)
+	if err != nil {
+		log.Fatal(err)
 	}
-	player.Region = playerData.Data.Region
+	player.PlayerData = fetchData
+	// if err := isPlayerDataExists(name, tag); err != nil {
+	// 	log.Println("PlayerData not found. Fetching data from API.")
+	// 	fetchData, err := getPlayerData(name, tag)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	playerData = fetchData
+	// 	player.PlayerData = playerData
+	// 	if err := player.WritePlayerLocalJSON(); err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	fmt.Print("asd")
+	// } else {
+	// 	log.Println("PlayerData found!")
+	// 	dir := fmt.Sprintf("Player/%s#%s", name, tag)
+	// 	jsonBytes, err := os.ReadFile(path.Join(dir, name+".json"))
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	err = json.Unmarshal(jsonBytes, playerData)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	player.PlayerData = playerData
+	// }
+	player.Region = fetchData.Data.Region
 	return player
 }
 
@@ -111,28 +116,4 @@ func getPlayerData(name string, tag string) (*model.PlayerData, error) {
 	}
 
 	return player, nil
-}
-
-func (p *Player) GetMatchData() (*model.Match, error) {
-	match := &model.Match{}
-	url := fmt.Sprintf("https://api.henrikdev.xyz/valorant/v3/matches/%s/%s/%s", p.Region, p.Name, p.Tag)
-	log.Println("GET: ", url)
-
-	err := retry.Do(
-		func() error {
-			jsonBytes := getJson(url)
-			err := json.Unmarshal(jsonBytes, &match)
-			isAvailable := match.Data[4].Metadata
-			if isAvailable == nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return match, nil
 }

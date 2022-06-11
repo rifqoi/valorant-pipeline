@@ -42,7 +42,7 @@ func createLogFile(dir string) (string, error) {
 
 }
 
-func readLogFile(filepath string) (string, error) {
+func (ls *localStorage) readLogFile(filepath string) (string, error) {
 	f, err := os.Open(path.Join(filepath, "history.log"))
 	if err != nil {
 		return "", err
@@ -146,16 +146,17 @@ func (ls *localStorage) WriteMatchJSON(match *model.Match) error {
 	}
 
 	log.Println("Reading log file....")
-	lastHistory, err := readLogFile(dir)
+	lastHistory, err := ls.readLogFile(dir)
 	if err != nil {
 		os.Remove(logPath)
 		return fmt.Errorf("Empty history")
 	}
 
 	if lastHistory == lastMatchID {
-		return fmt.Errorf("Udah ada match sebelumnya: %s", lastMatchID)
+		return fmt.Errorf("There was an existing match: %s", lastMatchID)
 	}
 
+	log.Println("New match found!")
 	log.Printf("Appending %s to %s", lastMatchID, fullPath)
 	if err := appendHistory(logPath, lastMatchID); err != nil {
 		log.Fatal(err)
