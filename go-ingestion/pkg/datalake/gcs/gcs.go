@@ -234,6 +234,5 @@ func (cs *cloudStorage) WriteMatchJSON(match *model.Match) error {
 	if err = cs.writeJSON(fullPath, match); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(cs)
 	return nil
 }

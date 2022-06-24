@@ -18,8 +18,7 @@ func (p *Player) GetMatchData() (*model.Match, error) {
 		func() error {
 			jsonBytes := getJson(url)
 			err := json.Unmarshal(jsonBytes, &match)
-			isAvailable := match.Data[4].Metadata
-			if isAvailable == nil {
+			if err != nil {
 				return err
 			}
 			return nil
