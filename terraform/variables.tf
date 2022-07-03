@@ -1,5 +1,7 @@
 locals {
   data_lake_bucket = "valorant_data_lake"
+  landing_zone_bucket = "valorant_landing_bucket"
+  process_zone_bucket = "valorant_process_bucket"
 }
 
 variable "project" {
