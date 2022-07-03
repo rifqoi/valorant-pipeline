@@ -14,6 +14,10 @@ func (s *storageType) WriteMatchJSON(match *model.Match) error {
 	return s.storage.WriteMatchJSON(match)
 }
 
+func (s *storageType) CheckStorageForNewFile() error {
+	return s.storage.CheckStorageForNewFile()
+}
+
 func NewStorage(storage Storage) StorageHelper {
 	return &storageType{
 		storage,

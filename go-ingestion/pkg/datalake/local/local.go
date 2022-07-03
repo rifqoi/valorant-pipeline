@@ -169,3 +169,8 @@ func (ls *localStorage) WriteMatchJSON(match *model.Match) error {
 
 	return nil
 }
+
+func (ls *localStorage) CheckStorageForNewFile() error {
+	// Mager
+	return nil
+}

@@ -13,23 +13,26 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest"
 	"github.com/rifqoi/valorant-pipeline/go-ingestion/pkg/ingest/model"
+	"google.golang.org/api/iterator"
 )
 
-const BUCKET_NAME = "valorant_data_lake_erudite-bonbon-352111"
+const DATA_LAKE_BUCKET_NAME = "valorant_data_lake_erudite-bonbon-352111"
+const LANDING_BUCKET_NAME = "valorant_landing_bucket_erudite-bonbon-352111"
 
 type cloudStorage struct {
-	player     *ingest.Player
-	client     *storage.Client
-	bucketName string
-	bucket     *storage.BucketHandle
-	w          io.Writer
-	ctx        context.Context
+	player         *ingest.Player
+	client         *storage.Client
+	bucketName     string
+	bucket         *storage.BucketHandle
+	dataLakeBucket *storage.BucketHandle
+	w              io.Writer
+	ctx            context.Context
 }
 
 func NewCloudStorage(player *ingest.Player) *cloudStorage {
 	ctx := context.Background()
 	cloudStorage := &cloudStorage{}
-	cloudStorage.bucketName = BUCKET_NAME
+	cloudStorage.bucketName = LANDING_BUCKET_NAME
 	cloudStorage.player = player
 
 	client, err := storage.NewClient(ctx)
@@ -39,7 +42,8 @@ func NewCloudStorage(player *ingest.Player) *cloudStorage {
 	}
 
 	cloudStorage.client = client
-	cloudStorage.bucket = client.Bucket(BUCKET_NAME)
+	cloudStorage.dataLakeBucket = client.Bucket(DATA_LAKE_BUCKET_NAME)
+	cloudStorage.bucket = client.Bucket(LANDING_BUCKET_NAME)
 	cloudStorage.ctx = ctx
 
 	return cloudStorage
@@ -51,7 +55,8 @@ func (cs *cloudStorage) errorf(format string, args ...interface{}) {
 }
 
 func writeObjectFile(cs *cloudStorage, stringToWrite string, objectPath string) error {
-	wc := cs.bucket.Object(objectPath).NewWriter(cs.ctx)
+	// write log file to data lake bucket
+	wc := cs.dataLakeBucket.Object(objectPath).NewWriter(cs.ctx)
 	wc.ContentType = "text/plain"
 
 	if _, err := wc.Write([]byte(stringToWrite)); err != nil {
@@ -82,13 +87,14 @@ func readLines(r io.Reader) ([]string, error) {
 }
 
 func (cs *cloudStorage) logFileExists(objectPath string) error {
+	// Check log file on data lake bucket
 	objectPath = path.Join(objectPath, "history.log")
-	_, err := cs.bucket.Object(objectPath).Attrs(cs.ctx)
+	_, err := cs.dataLakeBucket.Object(objectPath).Attrs(cs.ctx)
 	if err != nil {
 		log.Println(objectPath, "does not exists")
 		return err
 	}
-	log.Println(objectPath, "exists")
+	log.Println(DATA_LAKE_BUCKET_NAME+"/"+objectPath, "exists")
 	return nil
 }
 
@@ -104,7 +110,7 @@ func (cs *cloudStorage) createLogFile(playerPath string) (string, error) {
 
 func (cs *cloudStorage) readLogFile(objectPath string) (string, error) {
 	objectPath = path.Join(objectPath, "history.log")
-	rc, err := cs.bucket.Object(objectPath).NewReader(cs.ctx)
+	rc, err := cs.dataLakeBucket.Object(objectPath).NewReader(cs.ctx)
 	if err != nil {
 		return "", err
 	}
@@ -124,13 +130,22 @@ func (cs *cloudStorage) readLogFile(objectPath string) (string, error) {
 	return lastLine, nil
 }
 
-func (cs *cloudStorage) writeJSON(objectPath string, jsonInterface interface{}) error {
+func (cs *cloudStorage) writeJSON(objectPath string, jsonInterface interface{}, bucketType string) error {
 
 	jsonBytes, err := json.MarshalIndent(jsonInterface, "", "   ")
 	if err != nil {
 		return err
 	}
-	wc := cs.bucket.Object(objectPath).NewWriter(cs.ctx)
+
+	var wc *storage.Writer
+
+	switch bucketType {
+	case "landing":
+		wc = cs.bucket.Object(objectPath).NewWriter(cs.ctx)
+	case "datalake":
+		wc = cs.dataLakeBucket.Object(objectPath).NewWriter(cs.ctx)
+	}
+	// wc := cs.bucket.Object(objectPath).NewWriter(cs.ctx)
 	wc.ContentType = "application/json"
 
 	if _, err := wc.Write(jsonBytes); err != nil {
@@ -142,12 +157,12 @@ func (cs *cloudStorage) writeJSON(objectPath string, jsonInterface interface{}) 
 		cs.errorf("Create Log: unable to create %s to bucket %q, file %q: %v", objectPath, cs.bucketName, objectPath, err)
 		return err
 	}
-	log.Println("updated object:", objectPath)
+	// log.Println("updated object:", objectPath)
 	return nil
 }
 
 func (cs *cloudStorage) appendHistory(objectPath string, logInformation string) error {
-	rc, err := cs.bucket.Object(objectPath).NewReader(cs.ctx)
+	rc, err := cs.dataLakeBucket.Object(objectPath).NewReader(cs.ctx)
 	if err != nil {
 		return err
 	}
@@ -174,9 +189,10 @@ func (cs *cloudStorage) WritePlayerJSON() error {
 	jsonName := fmt.Sprintf("%s.json", cs.player.Name)
 	objectPath := path.Join(playerPath, jsonName)
 
-	if err := cs.writeJSON(objectPath, cs.player.PlayerData); err != nil {
+	if err := cs.writeJSON(objectPath, cs.player.PlayerData, "datalake"); err != nil {
 		return err
 	}
+	log.Println("updated object:", DATA_LAKE_BUCKET_NAME+"/"+objectPath)
 
 	return nil
 }
@@ -184,10 +200,13 @@ func (cs *cloudStorage) WritePlayerJSON() error {
 func (cs *cloudStorage) WriteMatchJSON(match *model.Match) error {
 	// Last Match ID
 	lastMatchID := match.Data[0].Metadata.Matchid
+
 	// Directory Player/<PlayerName>#>Tag>/
 	dir := fmt.Sprintf("Player/%s#%s/matches", cs.player.Name, cs.player.Tag)
+
 	// File Player/<PlayerName>#>Tag>/<match-id>.json
 	filename := fmt.Sprintf("%s.json", lastMatchID)
+
 	fullPath := path.Join(dir, filename)
 	logPath := path.Join(dir, "history.log")
 
@@ -205,9 +224,10 @@ func (cs *cloudStorage) WriteMatchJSON(match *model.Match) error {
 		}
 
 		log.Println("Writing json....")
-		if err = cs.writeJSON(fullPath, match); err != nil {
+		if err = cs.writeJSON(fullPath, match, "landing"); err != nil {
 			log.Fatal(err)
 		}
+		log.Println("updated object:", LANDING_BUCKET_NAME+"/"+fullPath)
 
 		log.Println("Json sucessfully created!")
 		return nil
@@ -231,8 +251,32 @@ func (cs *cloudStorage) WriteMatchJSON(match *model.Match) error {
 	}
 
 	log.Printf("Creating %s.json file", lastMatchID)
-	if err = cs.writeJSON(fullPath, match); err != nil {
+	if err = cs.writeJSON(fullPath, match, "landing"); err != nil {
 		log.Fatal(err)
 	}
+	log.Println("updated object:", LANDING_BUCKET_NAME+"/"+fullPath)
+	return nil
+}
+
+func (cs *cloudStorage) CheckStorageForNewFile() error {
+	// Checking whether the bucket has a new file
+	objs := cs.bucket.Objects(cs.ctx, nil)
+
+	var objects []interface{}
+	for {
+		attrs, err := objs.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		objects = append(objects, attrs)
+	}
+
+	if len(objects) == 0 {
+		return fmt.Errorf("There's no new data on bucket")
+	}
+
 	return nil
 }

@@ -51,6 +51,11 @@ func main() {
 		}
 		fmt.Println()
 	}
+
+	_storage := chooseStorage("gcs", nil)
+	if err := _storage.CheckStorageForNewFile(); err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("Nice")
 }
 
