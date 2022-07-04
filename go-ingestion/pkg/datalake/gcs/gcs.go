@@ -132,7 +132,7 @@ func (cs *cloudStorage) readLogFile(objectPath string) (string, error) {
 
 func (cs *cloudStorage) writeJSON(objectPath string, jsonInterface interface{}, bucketType string) error {
 
-	jsonBytes, err := json.MarshalIndent(jsonInterface, "", "   ")
+	jsonBytes, err := json.Marshal(jsonInterface)
 	if err != nil {
 		return err
 	}
