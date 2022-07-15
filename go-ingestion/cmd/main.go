@@ -24,7 +24,7 @@ func main() {
 	players := make(map[string]string)
 
 	players["Aledania"] = "3110"
-	players["iNeChan"] = "uwu"
+	players["STNS iNeChan"] = "uwu"
 	players["I U"] = "8400"
 
 	// To store the keys in slice in sorted order

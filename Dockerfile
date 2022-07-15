@@ -15,7 +15,7 @@ COPY --from=go /app/ingest /usr/local/bin
 USER root
 RUN apt-get update -qq && apt-get install vim -qqq
 
-COPY ./airflow/requirements.txt .
+COPY ./requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 SHELL ["/bin/bash", "-o", "pipefail", "-e", "-u", "-x", "-c"]
