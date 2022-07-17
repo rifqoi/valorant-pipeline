@@ -12,17 +12,29 @@ class ValorantTransform:
         self.load_path = landing_bucket
         self.save_path = processed_bucket
 
-    def transform_data_array(self, json_blob: str) -> None:
-        df = self.spark.read.json(f"gs://{self.load_path}/{json_blob}")
+    def transform_data_array(self, json_blob: storage.Blob) -> None:
+        # Checking multiline json or not
+        with storage.fileio.BlobReader(blob=json_blob) as f:
+            if len(f.readlines()) != 1:
+                df = self.spark.read.option("multiline", "true").json(
+                    f"gs://{self.load_path}/{json_blob.name}"
+                )
+            else:
+                df = self.spark.read.json(f"gs://{self.load_path}/{json_blob.name}")
+
         data = df.withColumn("data", F.explode(df.data)).select("data.*")
+        self.current_json = json_blob.name
         self.data = data
 
-    def transform_matches_details(self, json_blob: str):
-        # I don't know how to check whether an attribute is exist...
+    def validate_file(self, json_blob: storage.Blob) -> None:
         try:
-            print(self.data)
+            if self.current_json != json_blob.name:
+                self.transform_data_array(json_blob)
         except:
             self.transform_data_array(json_blob)
+
+    def transform_matches_details(self, json_blob: storage.Blob):
+        self.validate_file(json_blob)
 
         matches_details = (
             self.data.select("Metadata", "teams.*")

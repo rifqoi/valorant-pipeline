@@ -50,6 +50,6 @@ count = 0
 for blob, datetime in blobs:
     if count == 2:
         break
+    print(blob.name)
     if blob.name.strip().endswith(".json"):
-        vtransform.transform_matches_details(blob.name)
-    break
+        vtransform.transform_matches_details(blob)
