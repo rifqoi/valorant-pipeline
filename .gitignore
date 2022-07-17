@@ -172,3 +172,9 @@ test.py
 src/cek.json
 src/gcs-connector-1.9.4-hadoop3.jar
 src/gcs-connector-latest-hadoop2.jar
+
+src/match_details
+src/parties
+src/player_stats
+src/players
+src/players_stats

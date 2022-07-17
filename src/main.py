@@ -43,7 +43,10 @@ spark = (
 
 
 vtransform = ValorantTransform(
-    landing_bucket=landing_bucket, processed_bucket=processed_bucket, spark=spark
+    landing_bucket=landing_bucket,
+    processed_bucket=processed_bucket,
+    spark=spark,
+    target_deployment="local",
 )
 
 count = 0
@@ -53,3 +56,7 @@ for blob, datetime in blobs:
     print(blob.name)
     if blob.name.strip().endswith(".json"):
         vtransform.transform_matches_details(blob)
+        vtransform.transform_parties(blob)
+        vtransform.transform_players(blob)
+        vtransform.transform_player_stats(blob)
+    break
