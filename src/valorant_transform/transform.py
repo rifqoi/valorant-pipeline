@@ -4,6 +4,7 @@ from google.cloud import storage
 import json
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
+from typing import Text, List
 
 
 class ValorantTransform:
@@ -51,6 +52,7 @@ class ValorantTransform:
         df: pyspark.sql.DataFrame,
         target_path: str,
     ) -> None:
+        print(f"{self.save_path}/{target_path}")
         if self.target_deployment == "local":
             df.write.csv(
                 target_path,
