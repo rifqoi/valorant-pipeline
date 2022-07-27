@@ -7,13 +7,20 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 
-from google.cloud import storage
 from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateExternalTableOperator,
 )
 
 import pyarrow.csv as pv
 import pyarrow.parquet as pq
+
+from google.cloud import storage
+
+
+storage_client = storage.Client()
+landing_bucket = "valorant_landing_bucket_erudite-bonbon-352111"
+data_lake_bucket = "valorant_data_lake_erudite-bonbon-352111"
+process_bucket = "valorant_process_bucket_erudite-bonbon-352111"
 
 default_args = {
     "owner": "airflow",
@@ -41,8 +48,33 @@ with DAG(
         bash_command="/usr/local/bin/ingest",
     )
 
+    spark_process_json_data = BashOperator(
+        task_id="process_json_data_with_spark",
+        bash_command="python /opt/airflow/spark/main.py",
+    )
+
+    from gcs_tasks import move_blob
+
+    json_pattern = r"Player\/.*/matches\/.*.json"
+    move_json_to_data_lake = PythonOperator(
+        task_id="move_json_from_landing_to_data_lake",
+        python_callable=move_blob,
+        op_args=[
+            storage_client,
+            landing_bucket,
+            data_lake_bucket,
+            json_pattern,
+        ],
+    )
+
     end_operator = DummyOperator(
         task_id="End_execution",
     )
 
-    start_operator >> ingest_data_from_api >> end_operator
+    (
+        start_operator
+        >> ingest_data_from_api
+        >> spark_process_json_data
+        >> move_json_to_data_lake
+        >> end_operator
+    )
