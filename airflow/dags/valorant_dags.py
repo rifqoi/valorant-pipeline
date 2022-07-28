@@ -1,4 +1,3 @@
-import os
 import logging
 
 from airflow import DAG
@@ -10,10 +9,9 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.google.cloud.operators.bigquery import (
     BigQueryCreateExternalTableOperator,
 )
-
-import pyarrow.csv as pv
-import pyarrow.parquet as pq
-
+from airflow.providers.google.cloud.operators.dataproc import (
+    DataprocSubmitPySparkJobOperator,
+)
 from google.cloud import storage
 
 
@@ -48,11 +46,13 @@ with DAG(
         bash_command="/usr/local/bin/ingest",
     )
 
-    spark_process_json_data = BashOperator(
+    spark_process_json_data = DataprocSubmitPySparkJobOperator(
+        main="gs://dtc_data_lake_erudite-bonbon-352111/dataproc_main.py",
         task_id="process_json_data_with_spark",
-        bash_command="python /opt/airflow/spark/main.py",
+        cluster_name="valorant-cluster",
+        region="asia-southeast1",
+        job_name="transform_valorant_json_files",
     )
-
     from gcs_tasks import move_blob
 
     json_pattern = r"Player\/.*/matches\/.*.json"
@@ -67,6 +67,17 @@ with DAG(
         ],
     )
 
+    csv_pattern = r".*\/.*\.csv"
+    move_processed_csv_to_data_lake = PythonOperator(
+        task_id="move_processed_csv_to_data_lake",
+        python_callable=move_blob,
+        op_args=[
+            storage_client,
+            process_bucket,
+            data_lake_bucket,
+            csv_pattern,
+        ],
+    )
     end_operator = DummyOperator(
         task_id="End_execution",
     )
@@ -76,5 +87,6 @@ with DAG(
         >> ingest_data_from_api
         >> spark_process_json_data
         >> move_json_to_data_lake
+        >> move_processed_csv_to_data_lake
         >> end_operator
     )
