@@ -1,17 +1,21 @@
+locals {
+  data_lake_bucket = "valorant_data_lake_${var.project}"
+  landing_zone_bucket = "valorant_landing_bucket_${var.project}"
+  process_zone_bucket = "valorant_process_bucket_${var.project}"
+}
+
 terraform {
   required_version = ">=1.0"
-  backend "local" {} # gcs for google cloud, s3 for aws but you can use provide keyword to init the backedn
+  # backend "local" {} # gcs for google cloud, s3 for aws but you can use provide keyword to init the backedn
+  backend "gcs" {
+    bucket  = "valorant_data_lake_erudite-bonbon-352111"
+    prefix  = "terraform/state"
+  }
   required_providers {
     google = {
       source = "hashicorp/google"
     }
   }
-}
-
-locals {
-  data_lake_bucket = "valorant_data_lake_${var.project}"
-  landing_zone_bucket = "valorant_landing_bucket_${var.project}"
-  process_zone_bucket = "valorant_process_bucket_${var.project}"
 }
 
 provider "google" {
