@@ -74,3 +74,23 @@ resource "google_bigquery_dataset" "dataset" {
   project    = var.project
   location   = var.region
 }
+
+# Firewall
+resource "google_compute_firewall" "rules" {
+  project     = var.project
+  name        = "airflow-firewall"
+  network     = "default"
+  description = "Airflow firewall targeting port 8080"
+
+  allow {
+    protocol  = "tcp"
+    ports     = ["22", "8080", "5000"]
+  }
+
+  allow {
+    protocol = "icmp"
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags = ["airflow"]
+}
