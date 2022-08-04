@@ -7,6 +7,13 @@ terraform {
     }
   }
 }
+
+locals {
+  data_lake_bucket = "valorant_data_lake_${var.project}"
+  landing_zone_bucket = "valorant_landing_bucket_${var.project}"
+  process_zone_bucket = "valorant_process_bucket_${var.project}"
+}
+
 provider "google" {
   project = var.project
   region  = var.region
@@ -14,7 +21,7 @@ provider "google" {
 }
 
 resource "google_storage_bucket" "data-lake-bucket" {
-  name     = "${local.data_lake_bucket}_${var.project}" # Concatenating DL bucket & Project name for unique naming
+  name     = local.data_lake_bucket
   location = var.region
 
   # Optional, but recommended settings:
@@ -29,7 +36,7 @@ resource "google_storage_bucket" "data-lake-bucket" {
 
 # Landing zone bucket
 resource "google_storage_bucket" "landing-zone-bucket" {
-  name     = "${local.landing_zone_bucket}_${var.project}" # Concatenating DL bucket & Project name for unique naming
+  name     = local.landing_zone_bucket
   location = var.region
 
   # Optional, but recommended settings:
@@ -44,7 +51,7 @@ resource "google_storage_bucket" "landing-zone-bucket" {
 
 # Process zone bucket
 resource "google_storage_bucket" "process_zone_bucket" {
-  name     = "${local.process_zone_bucket}_${var.project}" # Concatenating DL bucket & Project name for unique naming
+  name     = local.process_zone_bucket
   location = var.region
 
   # Optional, but recommended settings:
@@ -63,4 +70,3 @@ resource "google_bigquery_dataset" "dataset" {
   project    = var.project
   location   = var.region
 }
-
