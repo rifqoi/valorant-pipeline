@@ -9,6 +9,12 @@ variable "region" {
   type        = string
 }
 
+variable "zone" {
+  description   = "Zone for GCP resources. Choose as per your location: https://cloud.google.com/about/locations"
+  default       = "asia-southeast2-a"
+  type          = string
+}
+
 variable "storage_class" {
   description = "Storage class type for your bucket. Check official docs for more info."
   default     = "STANDARD"

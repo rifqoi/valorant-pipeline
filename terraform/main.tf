@@ -94,3 +94,35 @@ resource "google_compute_firewall" "rules" {
   source_ranges = ["0.0.0.0/0"]
   target_tags = ["airflow"]
 }
+
+resource "google_compute_instance" "valorant-vm1" {
+  name         = "valorant-vm1"
+  machine_type = "e2-standard-4"
+  zone         = var.zone
+  project = var.project
+  allow_stopping_for_update = true
+  desired_status = "TERMINATED"
+
+  tags = ["airflow-firewall", "http-server", "https-server"]
+
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-2004-lts"
+    }
+  }
+
+  network_interface {
+    network = "default"
+
+    access_config {
+      // Ephemeral public IP
+    }
+  }
+
+  service_account {
+    # Google recommends custom service accounts that have cloud-platform scope
+    # and permissions granted via IAM Roles.
+    email  = "de-projects@erudite-bonbon-352111.iam.gserviceaccount.com"
+    scopes = ["cloud-platform"]
+  }
+}
